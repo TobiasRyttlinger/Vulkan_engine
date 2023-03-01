@@ -30,7 +30,7 @@ namespace lve {
 	}
 
 	void App::run() {
-		glm::vec3 bounds{ 1000,1000,1000 };
+		glm::vec3 bounds{ 300,300,300 };
 		flockingbird::FlockSimulationParameters flockSimParams{
 				speedLimit,
 				forceLimit,
@@ -40,6 +40,7 @@ namespace lve {
 				separationWeight,
 				alignmentWeight,
 				cohesionWeight,
+				avoidanceWeight,
 				bounds.x,
 				bounds.y,
 				bounds.z
@@ -73,17 +74,20 @@ namespace lve {
 			float aspect = renderer.getAspectRatio();
 			camera.setPerspective(glm::radians(50.0f), aspect, 0.1, 10);
 
+			
 			//Boids
 			flockSim.step(frameTime);
 
-
-			for (int i = 0; i < numberOfBoids; i++) {
-
-				gameObjects[i].transform.translate.x = glm::clamp(flock.boids[i].position.x / bounds.x, -1.0f, 1.0f);
-				gameObjects[i].transform.translate.y = glm::clamp(flock.boids[i].position.y / bounds.y, -1.0f, 1.0f);
-				gameObjects[i].transform.translate.z = glm::clamp(flock.boids[i].position.z / bounds.z, -1.0f, 1.0f);
-				glm::vec3 dir = -(glm::vec3{ flock.boids[i].velocity.x, flock.boids[i].velocity.y, flock.boids[i].velocity.z });
-				gameObjects[i].transform.lookatMatrix =glm::inverse(glm::lookAt(gameObjects[i].transform.translate, dir + gameObjects[i].transform.translate, {0,-1,0}));
+			for (int i = 0; i < gameObjects.size(); i++) {
+				if (gameObjects[i].boid) {
+				
+					gameObjects[i].transform.translate.x = glm::clamp(flock.boids[i].position.x / bounds.x, -1.0f, 1.0f);
+					gameObjects[i].transform.translate.y = glm::clamp(flock.boids[i].position.y / bounds.y, -1.0f, 1.0f);
+					gameObjects[i].transform.translate.z = glm::clamp(flock.boids[i].position.z / bounds.z, -1.0f, 1.0f);
+					glm::vec3 dir = -(glm::vec3{ flock.boids[i].velocity.x, flock.boids[i].velocity.y, flock.boids[i].velocity.z });
+					gameObjects[i].transform.lookatMatrix = glm::inverse(glm::lookAt(gameObjects[i].transform.translate, dir + gameObjects[i].transform.translate, { 0,-1,0 }));
+				}
+				
 				
 			}
 
@@ -107,17 +111,28 @@ namespace lve {
 
 	void App::loadGameObjects() {
 		//std::shared_ptr<LveModel> lveModel = createConeModel(lveDevice, glm::vec3(0.0), 1.0f);
-		std::shared_ptr<LveModel> lveModel = LveModel::createModelFromFile(lveDevice, "Models/paperplane.obj");
+		std::shared_ptr<LveModel> lveModel = LveModel::createModelFromFile(lveDevice, "Models/paperAirplane.obj");
 		for (int i = 0; i < numberOfBoids; i++) {
 			auto obj = GameObject::createGameObject();
 			obj.model = lveModel;
-			obj.transform.translate = { 0,0,0 };
-			obj.transform.scale = { 0.001f,0.001f,0.001f };
-			//obj.transform.rotation = { glm::pi<float>(),0,0 };
+			obj.boid = true;
+			obj.transform.translate = { 0.0f,0.5f,2.5f };
+			obj.transform.scale = { 0.003f,0.003f,0.003f };
+			//obj.transform.scale = { 3,1.5,3 };
+			//obj.transform.rotation = { 0,glm::pi<float>(),0 };
 			gameObjects.push_back(std::move(obj));
 		}
 
-
+		//add bounding cube
+		lveModel = LveModel::createModelFromFile(lveDevice, "Models/colored_cube.obj");
+		auto obj = GameObject::createGameObject();
+		obj.model = lveModel;
+		obj.boid = false;
+		//obj.transform.translate = { 0.0f,0.5f,2.5f };
+		//obj.transform.scale = { 1f,0.005f,0.005f };
+		//obj.transform.scale = { 3,1.5,3 };
+		//obj.transform.rotation = { 0,glm::pi<float>(),0 };
+		//gameObjects.push_back(std::move(obj));
 	}
 
 

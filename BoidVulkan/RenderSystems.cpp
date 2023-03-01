@@ -8,7 +8,7 @@ namespace lve {
 
 	struct pushConstants {
 		glm::mat4 transform{ 1.0f };
-		alignas(16) glm::vec3 color;
+		glm::mat4 normalMatrix{ 1.0f };
 	};
 
 
@@ -61,16 +61,18 @@ namespace lve {
 
 
 
-	void RenderSystem::renderGameObjects(VkCommandBuffer commandBufferParam, std::vector<GameObject>& gameObjects, const Camera &camera) {
+	void RenderSystem::renderGameObjects(VkCommandBuffer commandBufferParam, std::vector<GameObject>& gameObjects, const Camera& camera) {
 		lvePipeline->bind(commandBufferParam);
 		//	int counter = 1;
 
 		auto projectionView = camera.getProjection() * camera.getView();
 		for (auto& obj : gameObjects) {
-			
+
 			pushConstants push{};
-			push.color = obj.color;
-			push.transform = projectionView * obj.transform.mat4();
+			auto modelMatrix = obj.transform.mat4();
+
+			push.transform = projectionView * modelMatrix;
+			push.normalMatrix = obj.transform.normalMatrix();
 			vkCmdPushConstants(commandBufferParam,
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,

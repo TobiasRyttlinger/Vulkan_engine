@@ -33,13 +33,14 @@ namespace lve {
 		float speedLimit = 5;
 		float forceLimit = 3;
 		float positionIncrementScalingFactor = 1;
-		float avoidanceRadius = 40;
-		float visionRange = 100;
+		float avoidanceRadius = 25;
+		float visionRange = 300;
 
-		float separationWeight = 1.5;
-		float alignmentWeight = 3;
-		float cohesionWeight = 1.0;		
-		int numberOfBoids = 1000;
+		float separationWeight =  1.5;
+		float alignmentWeight =  1.0;
+		float cohesionWeight =  1.0;
+		float avoidanceWeight = 10;
+		int numberOfBoids = 250;
 
 		
 

@@ -5,9 +5,14 @@
 //std
 #include<cstdlib>
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
 #include <stdexcept>
 
 int main() {
+
+	system("Compile.bat");
+
 	srand(time(NULL));
 	lve::App app{};
 
