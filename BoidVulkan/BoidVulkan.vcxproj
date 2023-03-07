@@ -151,6 +151,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="keyboardMovementController.cpp" />
+    <ClCompile Include="lve_buffer.cpp" />
     <ClCompile Include="lve_model.cpp" />
     <ClCompile Include="lve_pipeline.cpp" />
     <ClCompile Include="lve_swap_chain.cpp" />
@@ -165,6 +166,8 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="KeyboardController.h" />
+    <ClInclude Include="lve_buffer.hpp" />
+    <ClInclude Include="lve_frameInfo.h" />
     <ClInclude Include="lve_model.h" />
     <ClInclude Include="lve_pipeline.hpp" />
     <ClInclude Include="lve_swap_chain.hpp" />

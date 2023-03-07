@@ -8,6 +8,7 @@
 #include <memory>
 #include<vector>
 #include "GameObject.h"
+#include"lve_frameInfo.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -25,7 +26,7 @@ namespace lve {
 
 		RenderSystem(const RenderSystem&) = delete;
 		RenderSystem& operator=(const RenderSystem&) = delete;
-		void renderGameObjects(VkCommandBuffer commandBufferParam,std::vector<GameObject>& gameObjects, const Camera &camera);
+		void renderGameObjects(frameInfo &frameInfo,std::vector<GameObject>& gameObjects);
 	private:
 		void createPipelineLayout();
 		void createPipeline(VkRenderPass renderPass);

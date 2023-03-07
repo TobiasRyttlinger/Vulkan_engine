@@ -32,12 +32,7 @@ namespace lve {
 	}
 
 	LveModel::~LveModel() {
-		vkDestroyBuffer(lveDevice.device(), vertexBuffer, nullptr);
-		vkFreeMemory(lveDevice.device(), vertexBufferMemory, nullptr);
-		if (hasIndexBuffer) {
-			vkDestroyBuffer(lveDevice.device(), indexBuffer, nullptr);
-			vkFreeMemory(lveDevice.device(), indexBufferMemory, nullptr);
-		}
+
 	}
 
 	std::unique_ptr<LveModel> LveModel::createModelFromFile(LveDevice& device, const std::string& filepath) {
@@ -54,29 +49,29 @@ namespace lve {
 		assert(vertexCount >= 3 && "Vertex count must be 3");
 
 		VkDeviceSize buffersize = sizeof(vertices[0]) * vertexCount;
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		lveDevice.createBuffer(buffersize,
+		uint32_t vertexSize = sizeof(vertices[0]);
+
+		LveBuffer stagingBuffer{
+			lveDevice,
+			vertexSize,
+			vertexCount,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer,
-			stagingBufferMemory);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		};
 
-		void* data;
-		vkMapMemory(lveDevice.device(), stagingBufferMemory, 0, buffersize, 0, &data);
-		memcpy(data, vertices.data(), static_cast<size_t>(buffersize));
-		vkUnmapMemory(lveDevice.device(), stagingBufferMemory);
+		stagingBuffer.map();
+		stagingBuffer.writeToBuffer((void*)vertices.data());
 
-		lveDevice.createBuffer(buffersize,
+		vertexBuffer = std::make_unique<LveBuffer>(
+			lveDevice,
+			vertexSize,
+			vertexCount,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			vertexBuffer,
-			vertexBufferMemory);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
-		lveDevice.copyBuffer(stagingBuffer, vertexBuffer, buffersize);
+		lveDevice.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), buffersize);
 
-		vkDestroyBuffer(lveDevice.device(), stagingBuffer, nullptr);
-		vkFreeMemory(lveDevice.device(), stagingBufferMemory, nullptr);
 	}
 
 	void LveModel::createIndexBuffer(const std::vector<uint32_t>& indices) {
@@ -88,29 +83,27 @@ namespace lve {
 		}
 
 		VkDeviceSize buffersize = sizeof(indices[0]) * indexCount;
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		lveDevice.createBuffer(buffersize,
+		uint32_t indexSize = sizeof(indices[0]);
+
+		LveBuffer stagingBuffer{
+			lveDevice,
+			indexSize,
+			indexCount,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer,
-			stagingBufferMemory);
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		};
 
-		void* data;
-		vkMapMemory(lveDevice.device(), stagingBufferMemory, 0, buffersize, 0, &data);
-		memcpy(data, indices.data(), static_cast<size_t>(buffersize));
-		vkUnmapMemory(lveDevice.device(), stagingBufferMemory);
+		stagingBuffer.map();
+		stagingBuffer.writeToBuffer((void*)indices.data());
 
-		lveDevice.createBuffer(buffersize,
+		indexBuffer = std::make_unique<LveBuffer>(lveDevice,
+			indexSize,
+			indexCount,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			indexBuffer,
-			indexBufferMemory);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			);
 
-		lveDevice.copyBuffer(stagingBuffer, indexBuffer, buffersize);
-
-		vkDestroyBuffer(lveDevice.device(), stagingBuffer, nullptr);
-		vkFreeMemory(lveDevice.device(), stagingBufferMemory, nullptr);
+		lveDevice.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), buffersize);
 
 	}
 
@@ -123,11 +116,11 @@ namespace lve {
 		}
 	}
 	void LveModel::bind(VkCommandBuffer commandBuffer) {
-		VkBuffer buffer[] = { vertexBuffer };
+		VkBuffer buffer[] = { vertexBuffer->getBuffer()};
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffer, offsets);
 		if (hasIndexBuffer) {
-			vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 		}
 	}
 

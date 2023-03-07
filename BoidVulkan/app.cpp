@@ -8,10 +8,16 @@
 #include "Camera.h"
 #include <chrono>
 #include <limits>
+#include "lve_buffer.hpp"
 #pragma comment(lib, "shell32.lib")
 
 
 namespace lve {
+
+	struct globalUbo {
+		glm::mat4 projectionView{ 1.0f };
+		glm::vec3 lightDirection = glm::normalize(glm::vec3{ 1.0f,-3.0f,-1.0f });
+	};
 
 	struct pushConstants {
 		glm::mat2 transform{ 1.0f };
@@ -41,6 +47,7 @@ namespace lve {
 				alignmentWeight,
 				cohesionWeight,
 				avoidanceWeight,
+				twoD,
 				bounds.x,
 				bounds.y,
 				bounds.z
@@ -48,6 +55,17 @@ namespace lve {
 		};
 		flockingbird::Flock flock{ numberOfBoids,bounds.x,bounds.y,bounds.z };
 		flockingbird::FlockSimulation flockSim{ flockSimParams,flock,defaultRules };
+
+		LveBuffer globalUniformBuffer{
+			lveDevice,
+			sizeof(globalUbo),
+			LveSwapChain::MAX_FRAMES_IN_FLIGHT,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			lveDevice.properties.limits.minUniformBufferOffsetAlignment,
+		};
+
+		globalUniformBuffer.map();
 
 
 		RenderSystem renderSys{ lveDevice,renderer.getSwapChainRenderPass() };
@@ -74,31 +92,63 @@ namespace lve {
 			float aspect = renderer.getAspectRatio();
 			camera.setPerspective(glm::radians(50.0f), aspect, 0.1, 10);
 
-			
+
 			//Boids
 			flockSim.step(frameTime);
 
 			for (int i = 0; i < gameObjects.size(); i++) {
 				if (gameObjects[i].boid) {
-				
+
 					gameObjects[i].transform.translate.x = glm::clamp(flock.boids[i].position.x / bounds.x, -1.0f, 1.0f);
 					gameObjects[i].transform.translate.y = glm::clamp(flock.boids[i].position.y / bounds.y, -1.0f, 1.0f);
 					gameObjects[i].transform.translate.z = glm::clamp(flock.boids[i].position.z / bounds.z, -1.0f, 1.0f);
 					glm::vec3 dir = -(glm::vec3{ flock.boids[i].velocity.x, flock.boids[i].velocity.y, flock.boids[i].velocity.z });
-					gameObjects[i].transform.lookatMatrix = glm::inverse(glm::lookAt(gameObjects[i].transform.translate, dir + gameObjects[i].transform.translate, { 0,-1,0 }));
+					if (twoD) {
+						dir.z = 0;
+					}
+
+
+					if (twoD) {
+						//2D
+						gameObjects[i].transform.lookatMatrix = glm::inverse(glm::lookAt(gameObjects[i].transform.translate, dir + gameObjects[i].transform.translate, { 0,0,-1 }));
+
+					}
+					else {
+						//3D
+						gameObjects[i].transform.lookatMatrix = glm::inverse(glm::lookAt(gameObjects[i].transform.translate, dir + gameObjects[i].transform.translate, { 0,-1,0 }));
+					}
 				}
-				
-				
+
+
 			}
 
 			if (auto commandBuffer = renderer.beginFrame()) {
 
-				// begin offscreen shadow pass
-				// render shadow casting objects
-				// end of oddscreen objects
+				int frameIndex = renderer.getFrameIndex();
+
+
+				frameInfo frameInfo{
+					frameIndex,
+					frameTime,
+					commandBuffer,
+					camera
+				};
+
+
+
+				// update
+				globalUbo ubo{};
+				ubo.projectionView = camera.getProjection() * camera.getView();
+				globalUniformBuffer.writeToIndex(&ubo, frameIndex);
+				globalUniformBuffer.flushIndex(frameIndex);
+
+
+
+
+				// render
 
 				renderer.beginSwapChainRenderPass(commandBuffer);
-				renderSys.renderGameObjects(commandBuffer, gameObjects, camera);
+				renderSys.renderGameObjects(frameInfo, gameObjects);
 				renderer.endSwapChainRenderPass(commandBuffer);
 
 				renderer.EndFrame();
@@ -110,21 +160,36 @@ namespace lve {
 	}
 
 	void App::loadGameObjects() {
-		//std::shared_ptr<LveModel> lveModel = createConeModel(lveDevice, glm::vec3(0.0), 1.0f);
-		std::shared_ptr<LveModel> lveModel = LveModel::createModelFromFile(lveDevice, "Models/paperAirplane.obj");
-		for (int i = 0; i < numberOfBoids; i++) {
-			auto obj = GameObject::createGameObject();
-			obj.model = lveModel;
-			obj.boid = true;
-			obj.transform.translate = { 0.0f,0.5f,2.5f };
-			obj.transform.scale = { 0.003f,0.003f,0.003f };
-			//obj.transform.scale = { 3,1.5,3 };
-			//obj.transform.rotation = { 0,glm::pi<float>(),0 };
-			gameObjects.push_back(std::move(obj));
+		std::shared_ptr<LveModel> lveModel{};
+		if (!twoD) {
+			lveModel = LveModel::createModelFromFile(lveDevice, "Models/PaperAirplane.obj");
+			for (int i = 0; i < numberOfBoids; i++) {
+				auto obj = GameObject::createGameObject();
+				obj.model = lveModel;
+				obj.boid = true;
+				obj.transform.translate = { 0.0f,0.5f,2.5f };
+				obj.transform.scale = glm::vec3(0.3/numberOfBoids);
+
+				gameObjects.push_back(std::move(obj));
+			}
+
+		}
+		else {
+			lveModel = LveModel::createModelFromFile(lveDevice, "Models/triangle.obj");
+			for (int i = 0; i < numberOfBoids; i++) {
+				auto obj = GameObject::createGameObject();
+				obj.model = lveModel;
+				obj.boid = true;
+				obj.transform.translate = { 0.0f,0.5f,2.5f };
+				obj.transform.scale = glm::vec3(2.5/numberOfBoids);
+
+				gameObjects.push_back(std::move(obj));
+			}
+
 		}
 
 		//add bounding cube
-		lveModel = LveModel::createModelFromFile(lveDevice, "Models/colored_cube.obj");
+		lveModel = LveModel::createModelFromFile(lveDevice, "Models/cube.obj");
 		auto obj = GameObject::createGameObject();
 		obj.model = lveModel;
 		obj.boid = false;

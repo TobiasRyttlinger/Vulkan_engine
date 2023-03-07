@@ -61,11 +61,10 @@ namespace lve {
 
 
 
-	void RenderSystem::renderGameObjects(VkCommandBuffer commandBufferParam, std::vector<GameObject>& gameObjects, const Camera& camera) {
-		lvePipeline->bind(commandBufferParam);
-		//	int counter = 1;
+	void RenderSystem::renderGameObjects(frameInfo &frameInfo,std::vector<GameObject>& gameObjects) {
+		lvePipeline->bind(frameInfo.commandBuffer);
 
-		auto projectionView = camera.getProjection() * camera.getView();
+		auto projectionView = frameInfo.camera.getProjection() * frameInfo.camera.getView();
 		for (auto& obj : gameObjects) {
 
 			pushConstants push{};
@@ -73,15 +72,15 @@ namespace lve {
 
 			push.transform = projectionView * modelMatrix;
 			push.normalMatrix = obj.transform.normalMatrix();
-			vkCmdPushConstants(commandBufferParam,
+			vkCmdPushConstants(frameInfo.commandBuffer,
 				pipelineLayout,
 				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 				0,
 				sizeof(pushConstants),
 				&push);
-			obj.model->bind(commandBufferParam);
-			obj.model->draw(commandBufferParam);
-			//counter++;
+			obj.model->bind(frameInfo.commandBuffer);
+			obj.model->draw(frameInfo.commandBuffer);
+	
 		}
 	}
 

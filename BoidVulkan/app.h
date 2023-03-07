@@ -29,20 +29,20 @@ namespace lve {
 		App& operator=(const App&) = delete;
 
 		void run();
-
+		const bool twoD = false;
 		float speedLimit = 5;
 		float forceLimit = 3;
 		float positionIncrementScalingFactor = 1;
-		float avoidanceRadius = 25;
-		float visionRange = 300;
+		float avoidanceRadius = 50;
+		float visionRange = 100;
+	
 
 		float separationWeight =  1.5;
-		float alignmentWeight =  1.0;
-		float cohesionWeight =  1.0;
-		float avoidanceWeight = 10;
-		int numberOfBoids = 250;
+		float alignmentWeight = 1.0;
+		float cohesionWeight = 1.0;
+		float avoidanceWeight = 3;
+		int numberOfBoids = 100;
 
-		
 
 	private:
 	
@@ -51,9 +51,6 @@ namespace lve {
 		LveWindow lveWindow{ WIDTH,HEIGHT,"MyWindow" };
 		LveDevice lveDevice{ lveWindow };
 		Renderer renderer{ lveWindow,lveDevice };
-		std::unique_ptr<LveModel> createCubeModel(LveDevice& device, glm::vec3 offset);
-		std::unique_ptr<LveModel> createConeModel(LveDevice& device, glm::vec3 offset, float radius);
-		float getAngle(glm::vec2 a, glm::vec2 b);
 		std::vector<GameObject> gameObjects;
 	};
 }

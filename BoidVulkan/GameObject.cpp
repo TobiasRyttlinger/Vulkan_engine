@@ -11,6 +11,7 @@ namespace lve {
 		zaxis.z = 0;
 		glm::normalize(zaxis);
 
+
 		glm::mat4 viewMatrix = {
 		  glm::vec4(xaxis.x, xaxis.y, xaxis.z, -dot(xaxis, eye)),
 		  glm::vec4(yaxis.x, yaxis.y, yaxis.z, -dot(yaxis, eye)),
